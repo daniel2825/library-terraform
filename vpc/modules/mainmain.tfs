@@ -1,0 +1,473 @@
+provider "aws" {
+  /*access_key = "${var.aws_access_key}" 
+  secret_key = "${var.aws_secret_key}"*/
+  region = "us-east-1"
+}
+resource "aws_vpc" "mederi_tf_vpc" {
+  cidr_block       = "11.0.0.0/24"
+  instance_tenancy = "default"
+  tags = {
+    Name = "mederi_tf_vpc"
+  }
+  enable_dns_hostnames = true
+}
+
+resource "aws_internet_gateway" "mederiInternet" {
+  vpc_id = "${aws_vpc.mederi_tf_vpc.id}"
+
+  tags = {
+    Name = "mederiInternet"
+  }
+}
+resource "aws_subnet" "subnetPublicMederi" {
+  vpc_id            = "${aws_vpc.mederi_tf_vpc.id}"
+  availability_zone = "us-east-1b"
+  cidr_block        = "11.0.0.128/25"
+  tags = {
+    Name = "subnetPublicMederi"
+  }
+}
+resource "aws_route_table" "subnetPublicMederi_rt" {
+  vpc_id = "${aws_vpc.mederi_tf_vpc.id}"
+  route {
+    cidr_block = "0.0.0.0/0"
+    gateway_id = "${aws_internet_gateway.mederiInternet.id}"
+  }
+  tags = {
+    Name = "publicRouteTable"
+  }
+}
+
+resource "aws_route_table_association" "subnetPublicMederi_rt" {
+  subnet_id      = "${aws_subnet.subnetPublicMederi.id}"
+  route_table_id = "${aws_route_table.subnetPublicMederi_rt.id}"
+}
+resource "aws_subnet" "subnetPrivateMederi" {
+  vpc_id            = "${aws_vpc.mederi_tf_vpc.id}"
+  availability_zone = "us-east-1c"
+  cidr_block        = "11.0.0.0/25"
+  tags = {
+    Name = "subnetPrivateMederi"
+  }
+}
+resource "aws_eip" "elasticIpMederi" {
+  vpc = true
+}
+resource "aws_nat_gateway" "nat_gateway_mederi" {
+  allocation_id = "${aws_eip.elasticIpMederi.id}"
+  subnet_id     = "${aws_subnet.subnetPublicMederi.id}"
+  tags = {
+    Name = "gw mederi"
+  }
+}
+resource "aws_route_table" "subnetPrivateMederi_rt" {
+  vpc_id = "${aws_vpc.mederi_tf_vpc.id}"
+  route {
+    cidr_block = "0.0.0.0/0"
+    gateway_id = "${aws_nat_gateway.nat_gateway_mederi.id}"
+  }
+  tags = {
+    Name = "privateRouteTable"
+  }
+}
+resource "aws_route_table_association" "subnetPrivateMederi_rt" {
+  subnet_id      = "${aws_subnet.subnetPrivateMederi.id}"
+  route_table_id = "${aws_route_table.subnetPrivateMederi_rt.id}"
+}
+
+resource "aws_network_acl" "networkAclPrivateMederi" {
+  vpc_id = "${aws_vpc.mederi_tf_vpc.id}"
+
+  subnet_ids = ["${aws_subnet.subnetPrivateMederi.id}"]
+
+  ingress {
+    protocol   = "tcp"
+    rule_no    = 54
+    action     = "allow"
+    cidr_block = "0.0.0.0/0"
+    from_port  = 80
+    to_port    = 80
+  }
+
+  ingress {
+    protocol   = "tcp"
+    rule_no    = 96
+    action     = "allow"
+    cidr_block = "0.0.0.0/0"
+    from_port  = 3000
+    to_port    = 3000
+  }
+
+  ingress {
+    protocol   = "tcp"
+    rule_no    = 86
+    action     = "allow"
+    cidr_block = "11.0.0.128/25"
+    from_port  = 22
+    to_port    = 22
+  }
+
+  //https://www.iana.org/assignments/protocol-numbers/protocol-numbers.xhtml
+  //https://docs.aws.amazon.com/es_es/AWSCloudFormation/latest/UserGuide/aws-resource-ec2-network-acl-entry.html
+  //https://www.ibm.com/support/knowledgecenter/SS42VS_7.3.3/com.ibm.qradar.doc/c_DefAppCfg_guide_ICMP_intro.html
+  /*ingress {
+    protocol   = 1
+    rule_no    = 98
+    action     = "allow"
+    cidr_block = "0.0.0.0/0"
+    from_port  = -1
+    to_port    = -1
+    icmp_code  = -1
+    icmp_type  = -1
+  }*/
+
+  egress {
+    protocol   = "tcp"
+    rule_no    = 54
+    action     = "allow"
+    cidr_block = "0.0.0.0/0"
+    from_port  = 80
+    to_port    = 80
+  }
+
+  egress {
+    protocol   = "tcp"
+    rule_no    = 96
+    action     = "allow"
+    cidr_block = "0.0.0.0/0"
+    from_port  = 3000
+    to_port    = 3000
+  }
+
+  egress {
+    protocol   = "tcp"
+    rule_no    = 18
+    action     = "allow"
+    cidr_block = "11.0.0.128/25"
+    from_port  = 22
+    to_port    = 22
+  }
+
+  egress {
+    protocol   = "tcp"
+    rule_no    = 21
+    action     = "allow"
+    cidr_block = "11.0.0.128/25"
+    from_port  = 0
+    to_port    = 65535
+  }
+
+  egress {
+    protocol   = "icmp"
+    rule_no    = 98
+    action     = "allow"
+    cidr_block = "0.0.0.0/0"
+    from_port  = 0
+    to_port    = 65535
+    icmp_code  = -1
+    icmp_type  = -1
+  }
+
+  tags = {
+    Name = "networkAclPrivateMederi"
+  }
+}
+
+resource "aws_security_group" "securegroupPrivadte" {
+  name        = "securegroupPrivadte"
+  description = "Allow bastion host"
+  vpc_id      = "${aws_vpc.mederi_tf_vpc.id}"
+
+  ingress {
+    description = "ssh security"
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["11.0.0.128/25"]
+  }
+
+  ingress {
+    description      = "Private security"
+    from_port        = 80
+    to_port          = 80
+    protocol         = "tcp"
+    cidr_blocks      = ["0.0.0.0/0"]
+    ipv6_cidr_blocks = ["::/0"]
+  }
+
+  ingress {
+    description      = "Private security"
+    from_port        = 3000
+    to_port          = 3000
+    protocol         = "tcp"
+    cidr_blocks      = ["0.0.0.0/0"]
+    ipv6_cidr_blocks = ["::/0"]
+  }
+
+  ingress {
+    protocol    = "icmp"
+    cidr_blocks = ["0.0.0.0/0"]
+    from_port   = -1
+    to_port     = -1
+    description = "Icmp ipv4"
+  }
+
+  egress {
+    description = "ssh security"
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["11.0.0.128/25"]
+  }
+
+  egress {
+    description      = "Private security"
+    from_port        = 80
+    to_port          = 80
+    protocol         = "tcp"
+    cidr_blocks      = ["0.0.0.0/0"]
+    ipv6_cidr_blocks = ["::/0"]
+  }
+
+  egress {
+    description      = "Private security"
+    from_port        = 3000
+    to_port          = 3000
+    protocol         = "tcp"
+    cidr_blocks      = ["0.0.0.0/0"]
+    ipv6_cidr_blocks = ["::/0"]
+  }
+
+  egress {
+    protocol    = "icmp"
+    cidr_blocks = ["0.0.0.0/0"]
+    from_port   = -1
+    to_port     = -1
+    description = "Icmp ipv4"
+  }
+
+  tags = {
+    Name = "securegroupPrivadte"
+  }
+
+}
+
+resource "aws_security_group" "securegroupPublic" {
+  name        = "securegroupPublic"
+  description = "Allow bastion host"
+  vpc_id      = "${aws_vpc.mederi_tf_vpc.id}"
+
+  ingress {
+    description = "ssh security"
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    description = "Port react"
+    from_port   = 3000
+    to_port     = 3000
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    protocol    = "icmp"
+    cidr_blocks = ["0.0.0.0/0"]
+    from_port   = -1
+    to_port     = -1
+    description = "Icmp ipv4"
+  }
+
+  ingress {
+    description      = "Private security"
+    from_port        = 80
+    to_port          = 80
+    protocol         = "tcp"
+    cidr_blocks      = ["0.0.0.0/0"]
+    ipv6_cidr_blocks = ["::/0"]
+  }
+
+  egress {
+    description = "Port react"
+    from_port   = 3000
+    to_port     = 3000
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    description = "ssh security"
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    description      = "Private security"
+    from_port        = 80
+    to_port          = 80
+    protocol         = "tcp"
+    cidr_blocks      = ["0.0.0.0/0"]
+    ipv6_cidr_blocks = ["::/0"]
+  }
+
+  egress {
+    protocol    = "icmp"
+    cidr_blocks = ["0.0.0.0/0"]
+    from_port   = -1
+    to_port     = -1
+    description = "Icmp ipv4"
+  }
+
+  tags = {
+    Name = "securegroupPublic"
+  }
+
+}
+/*
+resource "aws_ebs_volume" "MederiStorage" {
+  type              = "gp2"
+  size              = 8
+  iops              = 100
+  availability_zone = "us-east-1c"
+  tags = {
+    Name = "MederiStorage"
+  }
+
+}*/
+//los volumenes se atan a la instancia en la misma zona de disponibilidad
+resource "aws_instance" "mederiBastionHost" {
+
+  ami                         = "ami-0fc61db8544a617ed"
+  instance_type               = "t2.micro"
+  subnet_id                   = "${aws_subnet.subnetPublicMederi.id}"
+  security_groups             = ["${aws_security_group.securegroupPublic.id}"]
+  associate_public_ip_address = true
+  key_name                    = "Dgsoftwarekey"
+  ebs_block_device {
+    device_name = "/dev/xvda"
+    volume_type = "gp3"
+    volume_size = 14
+    iops        = 500
+  }
+
+
+  tags = {
+    Name = "Bastion host"
+  }
+
+}
+/*
+resource "aws_volume_attachment" "volumenMederiBastionHost" {
+  device_name = "/dev/sdh"
+
+  volume_id    = "${aws_ebs_volume.MederiStorage.id}"
+  instance_id  = "${aws_instance.mederiBastionHost.id}"
+  force_detach = true
+}*/
+
+resource "aws_instance" "mederiServerWeb" {
+
+  ami                         = "ami-0fc61db8544a617ed"
+  instance_type               = "t2.micro"
+  subnet_id                   = "${aws_subnet.subnetPrivateMederi.id}"
+  security_groups             = ["${aws_security_group.securegroupPrivadte.id}"]
+  associate_public_ip_address = false
+
+  ebs_block_device {
+    device_name = "/dev/xvda"
+    volume_type = "gp3"
+    volume_size = 14
+    iops        = 500
+  }
+  key_name = "Dgsoftwarekey"
+  tags = {
+    Name = "Mederi Server Web"
+  }
+
+}
+
+resource "aws_elb" "MederiElb" {
+  name            = "MederiElb"
+  subnets         = ["${aws_subnet.subnetPrivateMederi.id}", "${aws_subnet.subnetPublicMederi.id}"]
+  security_groups = ["${aws_security_group.securegroupPublic.id}"]
+
+  listener {
+    instance_port     = 3000
+    instance_protocol = "http"
+    lb_port           = 80
+    lb_protocol       = "http"
+  }
+
+  health_check {
+    healthy_threshold   = 5
+    unhealthy_threshold = 2
+    timeout             = 5
+    target              = "HTTP:3000/"
+    interval            = 30
+  }
+
+}
+
+resource "aws_lb_target_group" "targetMederiPortTraffic" {
+  name        = "targetMederiPortTraffic"
+  port        = 3000
+  protocol    = "HTTP"
+  target_type = "instance"
+  vpc_id      = "${aws_vpc.mederi_tf_vpc.id}"
+}
+
+resource "aws_launch_configuration" "serverAmiMederi" {
+  name_prefix     = "autoScalingInstance"
+  image_id        = "ami-0fc61db8544a617ed"
+  instance_type   = "t2.micro"
+  security_groups = ["${aws_security_group.securegroupPrivadte.id}"]
+  key_name        = "Dgsoftwarekey"
+
+}
+
+resource "aws_autoscaling_group" "autoScalingMederi" {
+  name                      = "autoScalingMederi"
+  launch_configuration      = "${aws_launch_configuration.serverAmiMederi.id}"
+  vpc_zone_identifier       = ["${aws_subnet.subnetPrivateMederi.id}"]
+
+
+  min_size                  = 1
+  desired_capacity          = 1
+  max_size                  = 3
+  health_check_grace_period = 300
+  health_check_type         = "EC2"
+  force_delete              = true
+  
+/*
+  tags = [{
+    propagate_at_launch = true
+    key                 = "Name"
+    value               = "Mederi server"
+    }
+  ]*/
+}
+
+resource "aws_autoscaling_policy" "autoScalingPoliciesMederi" {
+  name                    = "autoScalingPoliciesMederiCpu"
+  autoscaling_group_name  = "${aws_autoscaling_group.autoScalingMederi.name}"
+  policy_type             = "TargetTrackingScaling"
+  metric_aggregation_type = "Average"
+
+  target_tracking_configuration {
+    predefined_metric_specification {
+      predefined_metric_type = "ASGAverageCPUUtilization"
+    }
+
+    target_value = 40.0
+  }
+
+}
+resource "aws_autoscaling_attachment" "aws_attach_MederiAutoscaling" {
+  autoscaling_group_name = "${aws_autoscaling_group.autoScalingMederi.id}"
+  elb                    = "${aws_elb.MederiElb.id}"
+}
