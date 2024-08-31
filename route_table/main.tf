@@ -17,12 +17,12 @@ resource "aws_route_table_association" "subnetPubliclibraryAs_rt" {
 
 // private subnet association
 
-resource "aws_eip" "elasticIpMederi" {
+resource "aws_eip" "elasticIpLibrary" {
   vpc = true
 }
 
 resource "aws_nat_gateway" "nat_gateway_library" {
-  allocation_id = "${aws_eip.elasticIpMederi.id}"
+  allocation_id = "${aws_eip.elasticIpLibrary.id}"
   subnet_id     = var.cidr_block_subnet_public
   tags = {
     Name = "gw library"
@@ -42,6 +42,6 @@ resource "aws_route_table" "subnetPrivateLibrary_rt" {
 
 resource "aws_route_table_association" "subnetPrivateMederiAs_rt" {
   subnet_id      = var.cidr_block_subnet_private
-  route_table_id = "${aws_route_table.subnetPrivateMederi_rt.id}"
+  route_table_id = "${aws_route_table.subnetPrivateLibrary_rt.id}"
 }
 

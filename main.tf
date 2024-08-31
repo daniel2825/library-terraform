@@ -41,7 +41,7 @@ module "aws_instance" {
   source = "./instances"
   subnet_public_id = module.aws_subnet.subnet_public_id
   security_group_public_id = module.aws_security_group.security_group_public_id
-  subnet_private_id = module.aws_security_group.security_group_private_id
+  subnet_private_id = module.aws_subnet.subnet_private_id
   security_group_private_id = module.aws_security_group.security_group_private_id
   ami_bastion_host = var.ami_bastion_host
   ami_server = var.ami_server
