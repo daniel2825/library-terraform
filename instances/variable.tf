@@ -1,26 +1,21 @@
-variable "cidr_block" {
+variable "subnet_public_id" {
  type = string
- description = "Network address"
+ description = "subnet id public"
 }
 
-variable "cidr_block_subnet_public" {
+variable "security_group_public_id" {
  type = string
- description = "Network address subnet public"
+ description = "security group id public"
 }
 
-variable "cidr_block_subnet_private" {
+variable "subnet_private_id" {
  type = string
- description = "Network address subnet public"
+ description = "subnet id private"
 }
 
-variable "availability_zone_public_subnet" {
+variable "security_group_private_id" {
  type = string
- description = "Availability zone public subnet"
-}
-
-variable "availability_zone_private_subnet" {
- type = string
- description = "Availability zone private subnet" 
+ description = "security group id private"
 }
 
 variable "ami_bastion_host" {

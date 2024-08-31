@@ -5,7 +5,7 @@ variable "vpc_id" {
 
 variable "internet_gateway_id" {
  type = string
- description = "Id of gateway"
+ description = "Internet gateway id"
 }
 
 variable "cidr_block_subnet_public" {
@@ -13,3 +13,7 @@ variable "cidr_block_subnet_public" {
  description = "Network address subnet public"
 }
 
+variable "cidr_block_subnet_private" {
+ type = string
+ description = "Network address subnet private"
+}
