@@ -8,12 +8,12 @@ variable "internet_gateway_id" {
  description = "Internet gateway id"
 }
 
-variable "cidr_block_subnet_public" {
+variable "subnet_public_id" {
  type = string
  description = "Network address subnet public"
 }
 
-variable "cidr_block_subnet_private" {
+variable "subnet_private_id" {
  type = string
  description = "Network address subnet private"
 }

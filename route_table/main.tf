@@ -11,7 +11,7 @@ resource "aws_route_table" "subnetPublicLibrary_rt" {
 }
 
 resource "aws_route_table_association" "subnetPubliclibraryAs_rt" {
-  subnet_id      = var.cidr_block_subnet_public
+  subnet_id      = var.subnet_public_id
   route_table_id = "${aws_route_table.subnetPublicLibrary_rt.id}"
 }
 
@@ -23,7 +23,7 @@ resource "aws_eip" "elasticIpLibrary" {
 
 resource "aws_nat_gateway" "nat_gateway_library" {
   allocation_id = "${aws_eip.elasticIpLibrary.id}"
-  subnet_id     = var.cidr_block_subnet_public
+  subnet_id     = var.subnet_public_id
   tags = {
     Name = "gw library"
   }
@@ -41,7 +41,7 @@ resource "aws_route_table" "subnetPrivateLibrary_rt" {
 }
 
 resource "aws_route_table_association" "subnetPrivateMederiAs_rt" {
-  subnet_id      = var.cidr_block_subnet_private
+  subnet_id      = var.subnet_private_id
   route_table_id = "${aws_route_table.subnetPrivateLibrary_rt.id}"
 }
 
