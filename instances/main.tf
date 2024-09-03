@@ -28,6 +28,13 @@ resource "aws_instance" "libraryServerWeb" {
   subnet_id                   = var.subnet_private_id
   security_groups             = [var.security_group_private_id]
   associate_public_ip_address = false
+  
+  user_data = <<-EOL
+  #!/bin/bash -xe
+
+  apt update
+  apt install openjdk-8-jdk --yes
+  EOL
 
   ebs_block_device {
     device_name = "/dev/xvda"

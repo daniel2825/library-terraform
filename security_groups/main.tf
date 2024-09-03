@@ -8,7 +8,7 @@ resource "aws_security_group" "securegroupPrivadte" {
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
-    cidr_blocks = ["11.0.0.128/25"]
+    cidr_blocks = ["10.0.0.0/25"]
   }
 
   ingress {
@@ -42,7 +42,7 @@ resource "aws_security_group" "securegroupPrivadte" {
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
-    cidr_blocks = ["11.0.0.128/25"]
+    cidr_blocks = ["10.0.0.0/25"]
   }
 
   egress {
