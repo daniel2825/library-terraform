@@ -3,5 +3,5 @@ output "subnet_public_id" {
 }
 
 output "subnet_private_id" {
-    value = aws_subnet.subnetPrivateLibrary
+    value = aws_subnet.subnetPrivateLibrary.id
 }
