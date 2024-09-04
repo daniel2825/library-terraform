@@ -32,8 +32,8 @@ resource "aws_instance" "libraryServerWeb" {
   user_data = <<-EOL
   #!/bin/bash -xe
 
-  apt update
-  apt install openjdk-8-jdk --yes
+  sudo yum update
+  sudo yum install docker
   EOL
 
   ebs_block_device {
