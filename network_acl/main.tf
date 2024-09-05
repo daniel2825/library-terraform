@@ -2,7 +2,7 @@ resource "aws_network_acl" "networkAclPrivateLibrary" {
   vpc_id = var.vpc_id
 
   subnet_ids = [var.subnet_private_id]
-/*
+
   ingress {
     protocol   = "tcp"
     rule_no    = 54
@@ -11,8 +11,18 @@ resource "aws_network_acl" "networkAclPrivateLibrary" {
     from_port  = 80
     to_port    = 80
   }
-  */
-/*
+
+  ingress {
+    protocol   = "icmp"
+    rule_no    = 98
+    action     = "allow"
+    cidr_block = "0.0.0.0/0"
+    from_port  = 0
+    to_port    = 65535
+    icmp_code  = -1
+    icmp_type  = -1
+  }
+  
   ingress {
     protocol   = "tcp"
     rule_no    = 96
@@ -20,7 +30,7 @@ resource "aws_network_acl" "networkAclPrivateLibrary" {
     cidr_block = "0.0.0.0/0"
     from_port  = 3000
     to_port    = 3000
-  }*/
+  }
 
   ingress {
     protocol   = "tcp"
@@ -63,9 +73,18 @@ resource "aws_network_acl" "networkAclPrivateLibrary" {
 
   egress {
     protocol   = "tcp"
-    rule_no    = 21
+    rule_no    = 75
     action     = "allow"
     cidr_block = "10.0.0.0/25"
+    from_port  = 0
+    to_port    = 65535
+  }
+
+  egress {
+    protocol   = "tcp"
+    rule_no    = 21
+    action     = "allow"
+    cidr_block = "0.0.0.0/0"
     from_port  = 0
     to_port    = 65535
   }

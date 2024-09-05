@@ -49,9 +49,22 @@ module "aws_instance" {
   instance_type_server       = var.instance_type_server
   key_name_instances         = var.key_name_instances
 }
-
+/*
 module "aws_elb" {
   source                    = "./elb"
+  subnet_public_id          = module.aws_subnet.subnet_public_id
+  subnet_private_id         = module.aws_subnet.subnet_private_id
+  security_group_public_id  = module.aws_security_group.security_group_public_id
+  security_group_private_id = module.aws_security_group.security_group_private_id
+  instance_type_autoscaling = var.instance_type_autoscaling
+  ami_autoscaling           = var.ami_autoscaling
+  vpc_id                    = module.aws_vpc.library_vpc_id
+  key_name_instances        = var.key_name_instances
+  percentage_cpu_scaling    = var.percentage_cpu_scaling
+}*/
+
+module "aws_elb" {
+  source                    = "./alb"
   subnet_public_id          = module.aws_subnet.subnet_public_id
   subnet_private_id         = module.aws_subnet.subnet_private_id
   security_group_public_id  = module.aws_security_group.security_group_public_id
