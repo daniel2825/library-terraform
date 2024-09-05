@@ -1,22 +1,10 @@
 
 resource "aws_lb" "LibraryAlb" {
-  name               = "Alb_library"
+  name               = "AlbLibrary"
   load_balancer_type = "application"
   subnets            = [var.subnet_private_id, var.subnet_public_id]
-
+  security_groups    = [var.security_group_public_id,var.security_group_private_id]
   enable_cross_zone_load_balancing = true
-}
-
-resource "aws_lb_listener" "LibraryAlb_listener" {
-  load_balancer_arn = aws_lb.LibraryAlb.arn
-
-  port              = 80
-  protocol          = "HTTP"
-
-  default_action {
-    type             = "forward"
-    target_group_arn = aws_lb_target_group.targetLibraryPortTraffic.arn
-  }
 }
 
 resource "aws_lb_target_group" "targetLibraryPortTraffic" {
@@ -39,7 +27,7 @@ resource "aws_lb_target_group" "targetLibraryPortTraffic" {
   }
 
   depends_on = [
-    aws_lb.this
+    aws_lb.LibraryAlb
   ]
 
   lifecycle {
@@ -47,6 +35,30 @@ resource "aws_lb_target_group" "targetLibraryPortTraffic" {
   }
 }
 
+resource "aws_lb_listener" "LibraryAlb_listener" {
+  load_balancer_arn = aws_lb.LibraryAlb.arn
+
+  port              = 80
+  protocol          = "HTTP"
+
+  default_action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.targetLibraryPortTraffic.arn
+  }
+}
+
+resource "aws_launch_configuration" "serverAmiLibrary" {
+  name_prefix     = "autoScalingInstance"
+  image_id        = var.ami_autoscaling
+  instance_type   = var.instance_type_autoscaling
+  security_groups = [var.security_group_private_id]
+  key_name        = var.key_name_instances
+
+   lifecycle {
+   prevent_destroy = true
+ }
+
+}
 
 resource "aws_autoscaling_group" "autoScalingLibrary" {
   name                      = "autoScalingLibrary"
@@ -60,6 +72,8 @@ resource "aws_autoscaling_group" "autoScalingLibrary" {
   health_check_grace_period = 300
   health_check_type         = "EC2"
   force_delete              = true
+
+
   
 }
 

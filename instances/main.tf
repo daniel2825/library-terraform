@@ -19,6 +19,10 @@ resource "aws_instance" "libraryBastionHost" {
     Name = "Bastion host"
   }
 
+  lifecycle {
+   prevent_destroy = false
+ }
+
 }
 
 resource "aws_instance" "libraryServerWeb" {
@@ -46,5 +50,9 @@ resource "aws_instance" "libraryServerWeb" {
   tags = {
     Name = "Library Server Web"
   }
+
+  lifecycle {
+   prevent_destroy = false
+ }
 
 }
